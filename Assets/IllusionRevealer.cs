@@ -9,12 +9,15 @@ public class IllusionRevealer : MonoBehaviour {
 	public float revealTime = 1.0f;
 	public float fadeTime = 1.0f;
 	public float fadeDelayTime = 0.5f;
+	public float angleChangeFadeRate = 90f; //Degrees/second of rotation that will cause the view to fade in 1 second
 
 	float delayTimer = 0;
 	float currentRadius = 0;
 	float currentFade = 1;
+	Vector3 prevAngle;
 
 	bool isFading = false;
+	bool isFocused = false;
 
 	public Texture2D noiseTexture;
 
@@ -26,8 +29,11 @@ public class IllusionRevealer : MonoBehaviour {
 		illusionMaterial.SetFloat("_Fade", 1.0f);
 		
 		illusionMaterial.SetTexture("_NoiseTex", noiseTexture);
+
+		prevAngle = Camera.main.transform.forward;
 	}
 	
+	//Refactor this into a nice state machine, maybe using unity animation
 	// Update is called once per frame
 	void Update () {
 
@@ -36,16 +42,26 @@ public class IllusionRevealer : MonoBehaviour {
 			delayTimer = 0;
 		}
 
+		//Only allows reveal to begin if it has not faded
+		if (Input.GetMouseButtonDown(1)) {
+			isFocused = true;
+		}
+
 		//Increase radius of reveal as key is held, after a brief delay, but not if the view is currently fading
-		if (Input.GetMouseButton(1) && currentRadius < revealRadius && !isFading) {
+		if (Input.GetMouseButton(1) && !isFading && isFocused) {
+			Debug.Log("Show");
 			delayTimer += Time.deltaTime;
 
 			if (delayTimer > revealDelay) {
 				currentRadius += (revealRadius / revealTime) * Time.deltaTime;
+
+				currentFade -= 2 * Vector3.Angle(Camera.main.transform.forward, prevAngle) / (Time.deltaTime * angleChangeFadeRate);
+				currentFade += (2 / revealTime) * Time.deltaTime;
 			}
 		}
 		//Reduce radius of reveal when key has been let go
 		else if ((!Input.GetMouseButton(1) && currentFade > -1) || isFading) {
+			Debug.Log("Fade");
 			delayTimer += Time.deltaTime;
 			isFading = true; 
 
@@ -54,12 +70,16 @@ public class IllusionRevealer : MonoBehaviour {
 			}
 		}
 
+
+		//Debug.Log(currentFade);
+
 		currentRadius = Mathf.Clamp(currentRadius, 0, revealRadius);
 		currentFade = Mathf.Clamp(currentFade, -1, 1);
 
-		//Reset values once fadine is complete
+		//Reset values once fading is complete
 		if (currentFade == -1) {
 			isFading = false;
+			isFocused = false;
 			currentRadius = 0;
 			currentFade = 1;
 		}
@@ -67,6 +87,8 @@ public class IllusionRevealer : MonoBehaviour {
 		illusionMaterial.SetFloat("_Radius", currentRadius);
 		illusionMaterial.SetFloat("_Feather", currentRadius * (featherRadius / revealRadius));
 		illusionMaterial.SetFloat("_Fade", currentFade);
+
+		prevAngle = Camera.main.transform.forward;
 		
 	}
 }
