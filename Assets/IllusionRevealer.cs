@@ -1,23 +1,39 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+public enum IllusionRevealerState { Faded, RevealDelay, Revealing, Revealed, Fading };
+
 public class IllusionRevealer : MonoBehaviour {
 	public Material illusionMaterial;
-	public float revealRadius = 0.5f; // Radius is defined as % of vertical screen space
-	public float featherRadius = 0.25f;
-	public float revealDelay = 0.5f; 
-	public float revealTime = 1.0f;
-	public float fadeTime = 1.0f;
-	public float fadeDelayTime = 0.5f;
-	public float angleChangeFadeRate = 90f; //Degrees/second of rotation that will cause the view to fade in 1 second
+	[SerializeField] 
+	float revealRadius = 0.5f; // Radius is defined as % of vertical screen space
 
-	float delayTimer = 0;
+	[SerializeField] 
+	float featherRadius = 0.25f;
+
+	[SerializeField] 
+	float angleChangeFadeRate = 360f; //Degrees/second of rotation that will cause the view to fade in 1 second
+
+	[SerializeField]
+	float angleChangeDeadZone = 90f; //How many degrees/second of rotation is allowed before fading kicks in?
+
+	[SerializeField] 
+	float delayTime = 1.0f;
+
+	[SerializeField]
+	float fadeInTime = 3.0f;
+
+	[SerializeField]
+	float fadeOutTime = 0.5f;
+
+
+	float timerStart = 0;
+	float fadeTimerStart = 0;
 	float currentRadius = 0;
 	float currentFade = 1;
+	IllusionRevealerState state;
 	Vector3 prevAngle;
-
-	bool isFading = false;
-	bool isFocused = false;
+	float angleChangeRate;
 
 	public Texture2D noiseTexture;
 
@@ -30,58 +46,63 @@ public class IllusionRevealer : MonoBehaviour {
 		
 		illusionMaterial.SetTexture("_NoiseTex", noiseTexture);
 
+		state = IllusionRevealerState.Faded;
+
 		prevAngle = Camera.main.transform.forward;
 	}
 	
-	//Refactor this into a nice state machine, maybe using unity animation
 	// Update is called once per frame
 	void Update () {
+		angleChangeRate = Vector3.Angle(Camera.main.transform.forward, prevAngle) / Time.deltaTime;
 
-		//Start timing delay on the frame the key is pressed or released
-		if (Input.GetMouseButtonDown(1) || Input.GetMouseButtonUp(1)) {
-			delayTimer = 0;
-		}
+		switch (state) {
+			case IllusionRevealerState.Faded:
+				currentRadius = 0;
+				currentFade = 1;
+				if (Input.GetMouseButtonDown(1)) {
+					timerStart = Time.time;
+					state = IllusionRevealerState.RevealDelay;
+				}
+				break;
 
-		//Only allows reveal to begin if it has not faded
-		if (Input.GetMouseButtonDown(1)) {
-			isFocused = true;
-		}
+			case IllusionRevealerState.RevealDelay:
+				if (!Input.GetMouseButton(1)) {
+					state = IllusionRevealerState.Fading;
+				}
+				if (Time.time - timerStart >= delayTime) {
+					state = IllusionRevealerState.Revealing;
+				}
+				break;
 
-		//Increase radius of reveal as key is held, after a brief delay, but not if the view is currently fading
-		if (Input.GetMouseButton(1) && !isFading && isFocused) {
-			Debug.Log("Show");
-			delayTimer += Time.deltaTime;
+			case IllusionRevealerState.Revealing:
+				if (Input.GetMouseButtonUp(1)) {
+					state = IllusionRevealerState.Fading;
+				}
+				else {
+					currentRadius += (revealRadius / fadeInTime) * Time.deltaTime;
+					currentFade += (1 / fadeInTime) * Time.deltaTime;
 
-			if (delayTimer > revealDelay) {
-				currentRadius += (revealRadius / revealTime) * Time.deltaTime;
+					if (angleChangeRate > angleChangeDeadZone) {
+						currentFade -= (angleChangeRate / angleChangeFadeRate) * Time.deltaTime * 2;
+					}
 
-				currentFade -= 2 * Vector3.Angle(Camera.main.transform.forward, prevAngle) / (Time.deltaTime * angleChangeFadeRate);
-				currentFade += (2 / revealTime) * Time.deltaTime;
-			}
-		}
-		//Reduce radius of reveal when key has been let go
-		else if ((!Input.GetMouseButton(1) && currentFade > -1) || isFading) {
-			Debug.Log("Fade");
-			delayTimer += Time.deltaTime;
-			isFading = true; 
+					currentRadius = Mathf.Clamp(currentRadius, 0, revealRadius);
+					currentFade = Mathf.Clamp(currentFade, -1, 1);
 
-			if (delayTimer > fadeDelayTime) {
-				currentFade -= (2 / fadeTime) * Time.deltaTime;
-			}
-		}
+					if (currentFade == -1) {
+						state = IllusionRevealerState.Faded;
+					}
+				}
+				break;
 
-
-		//Debug.Log(currentFade);
-
-		currentRadius = Mathf.Clamp(currentRadius, 0, revealRadius);
-		currentFade = Mathf.Clamp(currentFade, -1, 1);
-
-		//Reset values once fading is complete
-		if (currentFade == -1) {
-			isFading = false;
-			isFocused = false;
-			currentRadius = 0;
-			currentFade = 1;
+			case IllusionRevealerState.Fading:
+				currentFade -= (1 / fadeOutTime) * Time.deltaTime;
+				currentFade = Mathf.Clamp(currentFade, -1, 1);
+				if (currentFade == -1) {
+					currentRadius = 0;
+					state = IllusionRevealerState.Faded;
+				}
+				break;
 		}
 
 		illusionMaterial.SetFloat("_Radius", currentRadius);
