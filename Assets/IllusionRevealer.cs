@@ -28,7 +28,6 @@ public class IllusionRevealer : MonoBehaviour {
 
 
 	float timerStart = 0;
-	float fadeTimerStart = 0;
 	float currentRadius = 0;
 	float currentFade = 1;
 	IllusionRevealerState state;
@@ -83,6 +82,9 @@ public class IllusionRevealer : MonoBehaviour {
 					currentFade += (1 / fadeInTime) * Time.deltaTime;
 
 					if (angleChangeRate > angleChangeDeadZone) {
+						state = IllusionRevealerState.Fading;
+					}
+					else {
 						currentFade -= (angleChangeRate / angleChangeFadeRate) * Time.deltaTime * 2;
 					}
 
