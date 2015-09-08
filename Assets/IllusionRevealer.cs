@@ -26,6 +26,9 @@ public class IllusionRevealer : MonoBehaviour {
 	[SerializeField]
 	float fadeOutTime = 0.5f;
 
+	[SerializeField]
+	Camera primaryCamera;
+
 
 	float timerStart = 0;
 	float currentRadius = 0;
@@ -47,12 +50,12 @@ public class IllusionRevealer : MonoBehaviour {
 
 		state = IllusionRevealerState.Faded;
 
-		prevAngle = Camera.main.transform.forward;
+		prevAngle = primaryCamera.transform.forward;
 	}
 	
 	// Update is called once per frame
 	void Update () {
-		angleChangeRate = Vector3.Angle(Camera.main.transform.forward, prevAngle) / Time.deltaTime;
+		angleChangeRate = Vector3.Angle(primaryCamera.transform.forward, prevAngle) / Time.deltaTime;
 
 		switch (state) {
 			case IllusionRevealerState.Faded:
@@ -111,7 +114,7 @@ public class IllusionRevealer : MonoBehaviour {
 		illusionMaterial.SetFloat("_Feather", currentRadius * (featherRadius / revealRadius));
 		illusionMaterial.SetFloat("_Fade", currentFade);
 
-		prevAngle = Camera.main.transform.forward;
+		prevAngle = primaryCamera.transform.forward;
 		
 	}
 }
