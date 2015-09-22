@@ -29,13 +29,18 @@ public class IllusionRevealer : MonoBehaviour {
 	[SerializeField]
 	Camera primaryCamera;
 
+	[SerializeField]
+	float moveSpeedFadeTrigger = 4.0f;
+
 
 	float timerStart = 0;
 	float currentRadius = 0;
 	float currentFade = 1;
 	IllusionRevealerState state;
 	Vector3 prevAngle;
+	Vector3 prevPosition;
 	float angleChangeRate;
+	float characterSpeed;
 
 	public Texture2D noiseTexture;
 
@@ -51,11 +56,13 @@ public class IllusionRevealer : MonoBehaviour {
 		state = IllusionRevealerState.Faded;
 
 		prevAngle = primaryCamera.transform.forward;
+		prevPosition = primaryCamera.transform.position;
 	}
 	
 	// Update is called once per frame
 	void Update () {
 		angleChangeRate = Vector3.Angle(primaryCamera.transform.forward, prevAngle) / Time.deltaTime;
+		characterSpeed = Vector3.Distance(primaryCamera.transform.position, prevPosition);
 
 		switch (state) {
 			case IllusionRevealerState.Faded:
@@ -91,6 +98,13 @@ public class IllusionRevealer : MonoBehaviour {
 						currentFade -= (angleChangeRate / angleChangeFadeRate) * Time.deltaTime * 2;
 					}
 
+					if (characterSpeed > moveSpeedFadeTrigger * Time.deltaTime) {
+						state = IllusionRevealerState.Fading;
+					}
+					else {
+						currentFade -= (characterSpeed / (moveSpeedFadeTrigger * Time.deltaTime)) * Time.deltaTime * 1.25f;
+					}
+
 					currentRadius = Mathf.Clamp(currentRadius, 0, revealRadius);
 					currentFade = Mathf.Clamp(currentFade, -1, 1);
 
@@ -115,6 +129,6 @@ public class IllusionRevealer : MonoBehaviour {
 		illusionMaterial.SetFloat("_Fade", currentFade);
 
 		prevAngle = primaryCamera.transform.forward;
-		
+		prevPosition = primaryCamera.transform.position;
 	}
 }
