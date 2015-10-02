@@ -3,13 +3,16 @@ using System.Collections;
 
 public class RenderTextureCorrection : MonoBehaviour {
 
-	public RenderTexture[] textures; 
+	public RenderTexture texture;
+	Camera renderTexCamera;
 	
-	// Update is called once per frame
 	void Start () {
-		foreach (RenderTexture rt in textures) {
-			rt.height = Screen.height;
-			rt.width = Screen.width;
-		}
+		texture.height = Screen.height;
+		texture.width = Screen.width;
+
+		//Weird hack to deal with a unity bug involving incorrect rendering to the render texture
+		renderTexCamera = gameObject.GetComponent<Camera>();
+		renderTexCamera.targetTexture = null;
+		renderTexCamera.targetTexture = texture;
 	}
 }

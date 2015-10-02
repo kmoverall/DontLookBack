@@ -2,6 +2,7 @@
 using System.Collections;
 
 [RequireComponent (typeof(Camera))]
+[ExecuteInEditMode]
 public class PerCameraSettings : MonoBehaviour {
 
 	public bool fog;
@@ -25,13 +26,14 @@ public class PerCameraSettings : MonoBehaviour {
 		previousAmbientLight = RenderSettings.ambientLight;
 		previousHaloStrength = RenderSettings.haloStrength;
 		previousFlareStrength = RenderSettings.flareStrength;
+
+		RenderSettings.ambientLight = ambientLight;
+		RenderSettings.haloStrength = haloStrength;
+		RenderSettings.flareStrength = flareStrength;
 		if (fog) {
 			RenderSettings.fog = fog;
 			RenderSettings.fogColor = fogColor;
 			RenderSettings.fogDensity = fogDensity;
-			RenderSettings.ambientLight = ambientLight;
-			RenderSettings.haloStrength = haloStrength;
-			RenderSettings.flareStrength = flareStrength;
 		}
 	}
 
